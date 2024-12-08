@@ -1,0 +1,162 @@
+#!/usr/bin/env tclsh
+package require tcltest
+
+source ../tfast.tcl
+source ../util/assert.tcl
+
+namespace import ::tcltest::*
+namespace import ::tfast::*
+namespace import ::assert::*
+
+proc log {args} {
+    puts "::> $args"
+}
+
+proc print-all {} {
+    tfast print -routes
+    tfast print -interceptors
+    tfast print -middlewares
+}
+
+proc setup {} {
+    tfast cleanup
+}
+
+
+
+test test-simple-routes {} -setup {setup} -body {            
+
+    tfast get / {req {}}
+    set result [tfast route match GET /]
+    assert-eq {^/$} [$result prop repath]
+
+    tfast post / {req {}}
+    set result [tfast route match POST /]
+    assert-eq {^/$} [$result prop repath]
+
+    tfast get /:id {req {}}
+    set result [tfast route match GET /1]
+    assert-eq {^/([^/]+)/?$} [$result prop repath]
+
+    tfast get {/user/:id([0-9]+)} {req {}}
+    set result [tfast route match GET /user/1]
+    assert-eq {^/user/([0-9]+)/?$} [$result prop repath] 
+    
+    return true
+} -result true
+
+test test-middleware-routes {} -setup {setup} -body {
+
+    # middleware -> route -> middleware
+    tfast post /app {req {}} {req {}} {req resp {}}
+
+    set result [tfast route match POST /app]
+
+    assert-eq /app [$result prop path]
+
+    return true
+    
+} -result true
+
+test test-ns-interceptors {} -setup {setup} -body {
+
+    #tfast any ...
+    #tfast get,post ...
+
+    # namespace middleware
+    # -recover catch all errors
+    # -status 404 catch only 404 and can recover by self
+    # -method is applied only enter or leave
+    tfast ns /api/v1 \
+	-method get,post \
+	-enter {req {}} \
+	-leave {req resp {}} \
+	-recover {req resp {}} \
+	-status 404 {req resp {}} \
+	-status 500 {req resp {}}
+
+    tfast get /api/v1 {req {}}
+
+    tfast 400 /api/v1 {req resp {}} 
+
+    set result [tfast route match GET /api/v1]
+    assert-non-empty $result
+    assert-eq 1 [$result proplist len enter]
+    assert-eq 1 [$result proplist len leave]
+    assert-eq 1 [$result proplist len recovers]
+    assert-eq 3 [$result propdict size interceptors]
+
+    assert-eq 1 [llength [$result propdict get interceptors 404]]
+    assert-eq 1 [llength [$result propdict get interceptors 400]]
+    assert-eq 1 [llength [$result propdict get interceptors 500]]
+    assert-eq 0 [llength [$result propdict get interceptors 401]]
+    
+    return true
+} -result true
+
+test test-dsl {} -setup {setup} -body {
+
+    tfast ns /api {
+
+	enter / {req {}}
+	
+	leave / {req resp {}}
+
+	recover / { req resp {}}
+
+	404 / {req resp {}}
+	
+	get / {req {}}
+	
+	post / {req {}}
+
+	any /anything {req {}}
+
+	put,delete /:id {req {}}
+
+	ns /user {
+	    get /:id {req { }}
+	    post / {req {}}
+	}
+    }
+
+    set result [tfast route match GET /api]
+    assert-ne "" $result "/api get"
+    assert-eq /api/ [$result prop path]
+
+    set result [tfast route match POST /api]
+    assert-ne "" $result "/api post"
+    assert-eq /api/ [$result prop path]
+
+    set result [tfast route match GET /api/anything]
+    assert-ne "" $result "/api/anything get"
+    assert-eq /api/anything [$result prop path]
+
+    set result [tfast route match DELETE /api/1]
+    assert-ne "" $result "/api/1 delete"
+    assert-eq /api/:id [$result prop path]
+
+    set result [tfast route match PUT /api/1]
+    assert-ne "" $result "/api/1 put"
+    assert-eq /api/:id [$result prop path]
+
+    set result [tfast route match GET /api/1]
+    assert-eq "" $result "/api/1 get not found"
+
+    set result [tfast route match GET /api/user/1]
+    assert-ne "" $result "/api/user/1 get"
+    assert-eq /api/user/:id [$result prop path]
+    
+    set result [tfast route match POST /api/user]
+    assert-ne "" $result "/api/user post"
+    assert-eq /api/user/ [$result prop path]
+
+    set result [tfast route match DELETE /api/user/1]
+    assert-eq "" $result "/api/user delete not found"
+
+
+    return true
+
+} -result true
+
+cleanupTests

@@ -1,0 +1,94 @@
+#!/usr/bin/env tclsh
+package require tcltest
+
+source ../tfast.tcl
+source ../util/assert.tcl
+
+namespace import ::tcltest::*
+namespace import ::assert::*
+namespace import ::tfast::*
+namespace import ::tfast::http::*
+
+proc print-all {} {
+    tfast print -routes
+    tfast print -interceptors
+    tfast print -middlewares
+}
+
+
+proc log {args} {
+    puts "::> $args"
+}
+
+proc setup {} {
+    tfast cleanup
+}
+
+test test-simple-request {} -setup {setup} -body {            
+
+    tfast get / {req {
+	if {[$req body] == "ping"} {
+	    render body pong	   
+	} else {
+	    render status 500
+	}
+    }}
+
+    print-all
+    
+    set request [Request new \
+		     path / \
+		     method GET \
+		     body ping]
+    
+    set resp [dispatch $request]
+
+    assert-eq 200 [$resp status]
+    assert-eq pong [$resp body]
+
+    return true
+} -result true
+
+test test-request-with-miidleware {} -setup {setup} -body {            
+
+    set enter {req {
+	set body [$req body]
+	$req body "$body enter"
+	return $req
+    }}
+    
+    set handler {{req} {
+	if {[$req body] == "ping enter"} {
+	    render body pong	   
+	} else {
+	    render status 500
+	}
+    }}
+
+    set leave {req resp {
+	$resp updatemap body {it {list $it leave}}
+    }}
+    
+    set leave2 {{req resp} {
+	return $resp
+    }}
+
+    tfast get / $enter $handler $leave $leave2
+
+    print-all
+    
+    set request [Request new \
+		     path / \
+		     method GET \
+		     body ping]
+    
+    set resp [dispatch $request]
+
+    assert-eq 200 [$resp status]
+    assert-eq {pong leave} [$resp body]
+
+    return true
+} -result true
+
+
+cleanupTests	

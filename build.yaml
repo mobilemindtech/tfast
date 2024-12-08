@@ -1,0 +1,32 @@
+app:
+  name: tfast
+  description: tfast descripiton
+  #entrypoint: ./main.tcl
+  testdir: ./tests
+dependencies:
+  #- https://raw.githubusercontent.com/mobilemindtec/tcl-hash/master/hash.tcl # import file
+  #- https://github.com/mobilemindtec/tcl-hash.git # import pure tcl lib
+  #- http-tcl # import c tcl lib
+requirements:
+  packages: 
+  #  - mysqltcl # check if package is installed
+  #  - tcllib
+  cmds:
+  #  - curl --version # check curl is installed
+  
+build:
+  cmds:
+# TCL c lib install
+#http-tcl:
+#  uri: https://github.com/anticrisis/tcl-http.git
+#  cmds:
+#    - ./act vcpkg setup
+#    - ./act build manifest.txt
+#    - mkdir -p build/tcl/modules/act && mkdir -p build/tcl/packages 
+#    - cp build/http-0.1.tm build/tcl/modules/act/
+#    - cp build/act_http/pkgIndex.tcl build/tcl/packages 
+#  imports:
+#    - ::tcl::tm::path add [file normalize ./.tcl/tcl-http/build/tcl/modules]
+#    - lappend ::auto_path [file normalize ./.tcl/tcl-http/build/tcl/packages]
+# custom commands
+commands:
