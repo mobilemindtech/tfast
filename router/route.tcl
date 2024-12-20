@@ -1,6 +1,8 @@
 
-namespace import ::dicts::*
-namespace import ::props::*
+package require tools
+
+namespace import ::tools::dicts::*
+namespace import ::tools::props::*
 
 namespace eval ::tfast::router {
 

@@ -2,9 +2,10 @@
 
 package require logger 0.3
 package require TclOO
+package require tools
 
-namespace import ::dicts::*
-namespace import ::lists::*
+namespace import ::tools::dicts::*
+namespace import ::tools::lists::*
 
 namespace eval ::tfast::router {
 
@@ -23,7 +24,8 @@ namespace eval ::tfast::router {
 	get_routes \
 	set_routes \
 	find_recovers \
-	find_interceptors
+	find_interceptors \
+	get_uri_query
     
     
     variable log
@@ -64,9 +66,9 @@ namespace eval ::tfast::router {
 	set action false
 	set handler {}
 	set handler_type {}
-	set enter_list [::lists::filter $actions {it {expr {[dict get $it action_type] == "enter"}}}]
-	set leave_list [::lists::filter $actions {it {expr {[dict get $it action_type] == "leave"}}}]
-	set action_list [::lists::filter $actions {it {expr {[dict get $it action_type] == "action"}}}]
+	set enter_list [lists filter $actions {it {expr {[dict get $it action_type] == "enter"}}}]
+	set leave_list [lists filter $actions {it {expr {[dict get $it action_type] == "leave"}}}]
+	set action_list [lists filter $actions {it {expr {[dict get $it action_type] == "action"}}}]
 
 	if {[llength $action_list] != 1} {
 	    return -code error "invalid route action"
@@ -75,10 +77,10 @@ namespace eval ::tfast::router {
 	set action [lindex $action_list 0]
 	set handler [dict get $action handler]
 	set handler_type [dict get $action code_type]
-	set enter_list [::lists::map $enter_list {it {
+	set enter_list [lists map $enter_list {it {
 	    dicts list $it code_type handler
 	}}]
-	set leave_list [::lists::map $leave_list {it {
+	set leave_list [lists map $leave_list {it {
 	    dicts list $it code_type handler
 	}}]
 	
@@ -152,7 +154,7 @@ namespace eval ::tfast::router {
 	    dict set requestQuery $k $v
 	}
 
-	puts "::> queries = $requestQuery"
+	#puts "::> queries = $requestQuery"
 	
 	#foreach var [split $queries "&"] {
 	#    if { [string trim $var] == "" } {

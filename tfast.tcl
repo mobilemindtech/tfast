@@ -1,26 +1,25 @@
 package provide tfast 1.0
 
 package require logger
+package require tools
 
 set dir [file dirname [file normalize [info script]]]
 
-source [file join $dir util lists.tcl]
-source [file join $dir util dicts.tcl]
-source [file join $dir util props.tcl]
-source [file join $dir util assert.tcl]
 source [file join $dir http mimes.tcl]
 source [file join $dir http codes.tcl]
 source [file join $dir http request.tcl]
 source [file join $dir http response.tcl]
 source [file join $dir router route.tcl]
 source [file join $dir router router.tcl]
-source [file join $dir http http_server.tcl]
+source [file join $dir http http_parser.tcl]
+source [file join $dir http http_handler.tcl]
+source [file join $dir http http_util.tcl]
 
 # http://www.tcl.tk/man/tcl/TclCmd/prefix.htm
 
 namespace import ::tfast::http::*
-namespace import ::dicts::*
-namespace import ::lists::*
+namespace import ::tools::dicts::*
+namespace import ::tools::lists::*
 namespace import ::tfast::router::*
 
 namespace eval ::tfast {
@@ -28,7 +27,6 @@ namespace eval ::tfast {
     namespace export tfast render
 
     variable log
-    variable ServerSocket_fd
 
     set log [logger::init tfast]
 
@@ -102,7 +100,7 @@ namespace eval ::tfast {
 	
 	if {[info procs $code] != ""} {
 	    set code_type proc
-	    set nargs [info args $code]
+	    set nargs [llength [info args $code]]
 	} else {
 	    set code_type lambda
 
@@ -249,9 +247,9 @@ namespace eval ::tfast {
 		}
 	    }
 	    serve {
-		set host [dictge $args -host localhost]
-		set port [dictget $args -port 3000]
-		set workers [dictget $args -workers 1]
+		set host [dicts get $args -host localhost]
+		set port [dicts get $args -port 3000]
+		set workers [dicts get $args -workers 1]
 		serve $host $port $workers
 	    }
 	    default {
@@ -374,11 +372,11 @@ namespace eval ::tfast {
     
     proc add_route {method path args} {
 
-	set codes [::lists::map $args {it {::tfast::get_code_info $it}}]
-	set enter_list [::lists::filter $codes {it {expr {[dict get $it nargs] == 1}}}]
-	set handler [::lists::last $enter_list]
-	set enter_list [::lists::butlast $enter_list]
-	set leave_list [::lists::filter $codes {it {expr {[dict get $it nargs] == 2}}}]
+	set codes [lists map $args {it {::tfast::get_code_info $it}}]
+	set enter_list [lists filter $codes {it {expr {[dict get $it nargs] == 1}}}]
+	set handler [lists last $enter_list]
+	set enter_list [lists butlast $enter_list]
+	set leave_list [lists filter $codes {it {expr {[dict get $it nargs] == 2}}}]
 
 	if {$handler == ""} {
 	    return -code error "invalid action"
@@ -408,26 +406,10 @@ namespace eval ::tfast {
 	register_route $method $path $actions
     }
 
-    proc serve {host port workers} {
-
+    proc serve {host port workers {backend "pure"}} {
 	variable log
-	variable ServerSocket_fd
-
-	if {$workers > 1} {
-	    worker_init $workers
-	    set socket [socket -server worker_accept $port]  
-	} else {
-	    http_init {*}$args
-	    set socket [socket -server http_accept $port]  
-	}
-
-	${log}::info "http server started on http://localhost:$port"
-
-	set ServerSocket_fd $socket
-
-	#websocket_init $socket
-
-	vwait forever	
+	set serve "::tfast::http::backend::${backend}::serve"
+	$serve $host $port $workers
     }
 
     proc render {args} {

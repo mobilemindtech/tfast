@@ -1,11 +1,13 @@
-k
 package require logger
 package require coroutine
 
 namespace eval ::tfast::http {
+
     variable log
+
     set log [logger::init tfast::http::http_parser]
 
+    namespace export parse_request
 
     proc parse_request {socket} {
 	# Default request data, they are overwritten if explicitly specified in 
@@ -24,7 +26,6 @@ namespace eval ::tfast::http {
 
 	set state connecting ; # connecting header body
 
-
 	while {true} {
 
 	    set readCount [::coroutine::util::gets_safety $socket 4096 line]
@@ -34,9 +35,8 @@ namespace eval ::tfast::http {
 	        if {![regexp {^(\w+)\s+(/.*)\s+(HTTP/[\d\.]+)} $line {} requestMethod requestURI requestProtocol]} {
 		    break 
 	      	}
-
 	        #set path "/[string trim [lindex $line 1] /]"
-	        set requestQuery [::trails::http::router::get_uri_query $requestURI]
+	        set requestQuery [::tfast::router::get_uri_query $requestURI]
 	        
 	        # remove query from URI
 	        set requestURI [lindex [split $requestURI ?] 0]
@@ -148,6 +148,7 @@ namespace eval ::tfast::http {
 	    return -code error {content-type not supported}
 	}
 
+	puts !!ok
 	#set requestURITail [string range $requestURI [lindex $ResponderDef 2] end]
 	Request new \
 	    -method $requestMethod \

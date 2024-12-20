@@ -1,9 +1,8 @@
-#!/bin/tclsh
-
 package require TclOO
+package require tools
 
-namespace import ::props::*
-namespace import ::dicts::*
+namespace import ::tools::props::*
+namespace import ::tools::dicts::*
 
 namespace eval ::tfast::http {
 
@@ -85,6 +84,10 @@ namespace eval ::tfast::http {
 	    my prop method {*}$args
 	}
 
+	method path {} {
+	    my prop path
+	}
+	
 	method content-type {args} {
 	    my prop content-type {*}$args
 	}

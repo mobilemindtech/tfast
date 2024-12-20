@@ -1,7 +1,7 @@
-#!/bin/tclsh
+package require tools
 
-namespace import ::props::*
-namespace import ::dicts::*
+namespace import ::tools::props::*
+namespace import ::tools::dicts::*
 
 namespace eval ::tfast::http {
 

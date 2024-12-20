@@ -1,11 +1,11 @@
 #!/usr/bin/env tclsh
 package require tcltest
+package require tools
 
 source ../tfast.tcl
-source ../util/assert.tcl
 
 namespace import ::tcltest::*
-namespace import ::assert::*
+namespace import ::tools::assert::*
 namespace import ::tfast::*
 namespace import ::tfast::http::*
 

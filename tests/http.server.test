@@ -1,0 +1,67 @@
+#!/usr/bin/env tclsh
+package require tcltest
+package require uuid
+package require coroutine
+package require tools
+
+source ../tfast.tcl
+
+namespace import ::tcltest::*
+namespace import ::tfast::*
+namespace import ::tools::assert::*
+
+
+set lock 1
+set count 0
+set max 1000
+set result {}
+
+proc client_post {} {
+    set post {POST /test HTTP/1.1
+Host: example.com
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 27
+
+field1=value1&field2=value2}
+    
+    set client [socket localhost 5151]
+    puts $client $post
+    close $client    
+}
+
+proc http_accept {socket addr port} {
+    set uuid [uuid::uuid generate]
+    coroutine [namespace current]::$uuid {*}[list handle $socket $addr $port]
+    chan configure $socket -blocking 0 -buffering line
+    cham event $socket readable [namespace current]::uuid
+}
+
+proc handle {socket addr port} {
+    puts handle
+    puts [time {
+	::tfast::http::parse_request $socket
+    }]
+    close $socket
+
+    incr ::count
+    if {$::count >= $::max} {
+	unset ::lock
+    }
+}
+
+test test-parse-request {} -body {
+    set socket [socket -server http_accept 5151]
+
+    for {set i 0} {$i < $::max} {incr i} {
+	set v [expr {int(rand()*100)}]
+	after $v client_post
+    }
+
+    vwait ::lock
+
+    close $socket
+    
+    return true
+} -result true
+
+cleanupTests

@@ -1,12 +1,14 @@
 #!/usr/bin/env tclsh
 package require tcltest
+package require uuid
+package require coroutine
+package require tools
 
 source ../tfast.tcl
-source ../util/assert.tcl
 
 namespace import ::tcltest::*
 namespace import ::tfast::*
-namespace import ::assert::*
+namespace import ::tools::assert::*
 
 proc log {args} {
     puts "::> $args"

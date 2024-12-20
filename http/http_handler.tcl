@@ -1,8 +1,9 @@
 
 package require logger
 package require coroutine
+package require tools
 
-namespace import ::dicts::*
+namespace import ::tools::dicts::*
 namespace import ::tfast::router::*
 
 namespace eval ::tfast::http {
@@ -24,8 +25,8 @@ namespace eval ::tfast::http {
     set log [logger::init tfast::http::http_server]
 
     set Controllers {}
-    set ObjFilters {}
-    set ProcFilters {}
+    set FiltersObjs {}
+    set FiltersProcs {}
     set PublicPath {}
 
     proc http_init {args} {
@@ -52,13 +53,6 @@ namespace eval ::tfast::http {
 	}
     }
 
-    proc http_accept {socket addr port} {
-	set uuid [uuid::uuid generate]
-	coroutine [namespace current]::$uuid {*}[list handle $socket $addr $port]
-	chan configure $socket -blocking 0 -buffering line
-	cham event $socket readable [namespace current]::uuid
-	#chan event $socket readable [list ::tfast::http::handle $socket $addr $port]  
-    }
 
     # add controller instance on cache
     proc add_controller {ctrl} {
@@ -69,8 +63,9 @@ namespace eval ::tfast::http {
     # handle http request
     proc handle {socket addr port} {
 	variable log
+	set start_time [clock milliseconds]
 
-	if { [eof $socket]} {
+	if {[eof $socket]} {
 	    ${log}::debug {channel is closed}
 	    http_connecton_close $socket
 	    return
@@ -82,12 +77,10 @@ namespace eval ::tfast::http {
 	    set response [filter_and_dispatch $request]
 
 	    if {[$response bool websocket]} {
-
 		${log}::debug "do websocket upgrade ${wsServer}"
 		set wsServer [app::get_ws_socket]
 		set headers [websocket_app::check_headers $headers]        
 		websocket_app::upgrade $wsServer $socket $headers      
-
 	    } else {
 		send_response $socket $response        
 	    }
@@ -105,11 +98,13 @@ namespace eval ::tfast::http {
 	    set has_response false
 	    set is_websocket false
 
-	    if {[info exists request] && [info object isa object $request]} {
+	    if {[info exists request] && [is_request $request]} {
+		set diff [expr {[clock milliseconds] - $start_time}]
+		${log}::debug "[$request method] [$request path] ${diff}ms"
 		$request destroy
 	    }      
 
-	    if {[info exists response] && [info object isa object $response]} {
+	    if {[info exists response] && [is_response $response]} {
 		set has_response true
 	    }
 
@@ -156,7 +151,7 @@ namespace eval ::tfast::http {
 
     proc apply_proc_filter_enter {request} {
 	variable FiltersProcs
-	set filters_enter [dictget $FiltersProcs enter {}]
+	set filters_enter [dicts get $FiltersProcs enter {}]
 	foreach enter $filters_enter {
 	    set result [$enter $request]
 	    if {[is_response $result]} {
@@ -172,7 +167,6 @@ namespace eval ::tfast::http {
 
     proc apply_object_filter_leave {request response} {
 	variable FiltersObjs
-	set response {}
 	foreach filter $FiltersObjs {
 	    set methods [info object methods $filter -all]
 	    if {[lsearch -exact $methods leave] > -1} {
@@ -187,7 +181,7 @@ namespace eval ::tfast::http {
 
     proc apply_proc_filter_leave {request response} {
 	variable FiltersProcs
-	set filters_leave [dictget $FiltersProcs leave {}]
+	set filters_leave [dicts get $FiltersProcs leave {}]
 	foreach leave $filters_leave {  
 	    set response [$leave $request $response]
 	    if {![is_response $response]} {
@@ -216,7 +210,7 @@ namespace eval ::tfast::http {
     proc apply_proc_filter_recover {request} {
 	variable FiltersProcs
 	set response {}
-	set filters_recover [dictget $FiltersProcs recover {}]
+	set filters_recover [dicts get $FiltersProcs recover {}]
 	foreach recover $filters_recover {
 	    set response [$recover $request $err]
 	    if {![is_response $response]} {
@@ -287,7 +281,7 @@ namespace eval ::tfast::http {
 	    
 	} on error err {
 	    set error_state true
-	    puts "::> http_parser->dispatch erro: $err"
+	    ${log}:error $err
 	    puts $::errorInfo
 
 	    set result [apply_route_recovers $request]
@@ -309,25 +303,22 @@ namespace eval ::tfast::http {
 	    }
 	}
 
-	#if {!$error_state} {
-	# general configured middlewares
 	set response [apply_object_filter_leave $request $response]
 
 	if {![is_response $response]} {
-	    return -code error {wrong response}
+	    return -code error {wrong object leave response}
 	}
 
 	set response [apply_proc_filter_leave $request $response]
 	
 	if {![is_response $response]} {
-	    return -code error {wrong response}
+	    return -code error {wrong proc leave response}
 	}
-	#}
 
 	set response [apply_route_interceptors $request $response]
 	
 	if {![is_response $response]} {
-	    return -code error {wrong response}
+	    return -code error {wrong interceptor response}
 	}
 
 	return $response
@@ -339,8 +330,6 @@ namespace eval ::tfast::http {
 	variable Controllers
 	variable PublicPath
 	
-	${log}::debug dispatch
-
 	set path [$request prop path]
 	set query [$request prop query]
 	set method [$request prop method]
@@ -348,7 +337,7 @@ namespace eval ::tfast::http {
 	set headers [$request prop headers]
 	set is_websocket false
 
-	${log}::debug "HTTP REQUEST: $method $path"
+	${log}::debug "$method $path"
 
 	if {[string match "/public/*" $path]} {
 	    
