@@ -148,7 +148,6 @@ namespace eval ::tfast::http {
 	    return -code error {content-type not supported}
 	}
 
-	puts !!ok
 	#set requestURITail [string range $requestURI [lindex $ResponderDef 2] end]
 	Request new \
 	    -method $requestMethod \

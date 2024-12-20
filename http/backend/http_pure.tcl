@@ -43,8 +43,8 @@ namespace eval ::tfast::http::backend::pure {
 
     proc handle {socket addr port} {
 	yield
-	# ::tfast::http::handle $socket $addr $port
-	puts [time {::tfast::http::handle $socket $addr $port}]
+	::tfast::http::handle $socket $addr $port
+	#puts [time {::tfast::http::handle $socket $addr $port}]
     }
 
     
