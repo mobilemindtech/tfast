@@ -2,6 +2,7 @@ package provide tfast 1.0
 
 package require logger
 package require tools
+package require logger::utils
 
 set dir [file dirname [file normalize [info script]]]
 
@@ -15,6 +16,7 @@ source [file join $dir http http_parser.tcl]
 source [file join $dir http http_handler.tcl]
 source [file join $dir http http_util.tcl]
 
+
 # http://www.tcl.tk/man/tcl/TclCmd/prefix.htm
 
 namespace import ::tfast::http::*
@@ -24,12 +26,15 @@ namespace import ::tfast::router::*
 
 namespace eval ::tfast {
 
+
+    logger::utils::applyAppender -appender colorConsole
+
+
     namespace export tfast render
 
     variable log
 
     set log [logger::init tfast]
-
 
     # Return true if list of values contains any
     # item of list args, orelse false
@@ -162,6 +167,74 @@ namespace eval ::tfast {
 	add_route $method [lindex $args 0] {*}[lrange $args 1 end]
     }
 
+    proc show_help {} {
+   	puts ""
+	puts "Usage: tfast <cmd> \[options\]"
+	puts ""
+	puts "Command:"
+	puts "	* Http methods:"
+	puts {  	tfast get /path {req { render -text "hello"}}}
+	puts {  	tfast head * {req { render }}}
+	puts {  	tfast options * {req { render }}}
+	puts {  	tfast post /path {req { render -text [req body]}}}
+	puts {  	tfast put /path {req { render -text [req body]}}}
+	puts {  	tfast delete /path {req { render }}}
+	puts {  	tfast patch /path {req { render -text "hello"}}}
+	puts {  	tfast * /path {req { render -text "hello"}}}
+	puts ""
+	puts "	*Middleware:"
+	puts ""
+	puts "	Enter middleware receives the request and can return a request or response. If return a response so return immediately"
+	puts {  	tfast ns /path -enter {req {}}}
+	puts "	Leave middleware receives the request and the response and can return a response"
+	puts ""
+	puts {  tfast ns /path -leave {req resp {}}}
+	puts "We too define routes with middlewares"
+	puts {  tfast get / \
+		    {req {}} \ # first middleware
+	            {req {}} \ # second middleware
+		    {req {}} \ # route action
+		    {req resp {}} # last middleware
+	}
+	puts ""
+	puts "Interceptor:"
+	puts ""
+	puts "Interceptors can be defined by path or status code and path"
+	puts "It receive the request and the response and can return a response"
+	puts ""
+	puts {  tfast ns /path -recover {req resp {}} # catch all on /path}
+	puts {  tfast ns 500 * {req resp {}} # cacth all status 500}
+	puts "cleanup: cleanup routes"
+	puts {  tfast cleanup}
+	puts "route <method> <path>: Search by route and return a Route object or empty string"
+	puts {  tfast route match get /path }
+	puts "print -routes -interceptors -middlewares -all: print router configs"
+	puts {  tfast print -all}
+	puts "ns: register namespace routes, interceptors and middlewares"
+	puts {
+	    tfast ns * \
+		-enter {req {}} \
+		-leave {req resp {}} \
+		-status 400 {req resp {}} \
+		-recover {req resp {}} 
+
+	    tfast ns /user {
+		enter {req {}}
+		401 {req {}}
+		get / {req {}}
+		get /:id {req {}}
+		post / {req {}}
+		put / {req {}}
+		delete /:id {req {}}
+		ns /nested {
+		    get / {req {}}
+		}
+	    }
+	}
+	puts "serve -host? -port? -workers? -backend <backend-name>: init server"
+	puts ""
+    }
+    
     #
     # @param cmd match
     # @param args to match use: method path
@@ -169,7 +242,10 @@ namespace eval ::tfast {
     #
     proc tfast {cmd args} {
 	switch $cmd {
-	    get - head - options - post - put - delete - patch - any {
+	    get - head - options - post - put - delete - patch - any - * {
+		if {$cmd == "*"} {
+		    set cmd any
+		}
 		cmd_route $cmd {*}$args
 	    }
 	    enter - leave {
@@ -187,7 +263,7 @@ namespace eval ::tfast {
 		lassign $args type method path
 		switch $type {
 		    match {
-			route_match $method $path			
+			route_match $method $path     
 		    }
 		    default {
 			return -code error "invalid option $type. use match <method> <path>"
@@ -205,6 +281,11 @@ namespace eval ::tfast {
 			}
 			-middlewares {
 			    print_middlewares
+			}
+			-all {
+			    print_routes
+			    print_middlewares
+			    print_interceptors
 			}
 			default {
 			    return -code error "invalid option $v. use -routes | -interceptors | -middlewares"
@@ -234,7 +315,7 @@ namespace eval ::tfast {
 			recover {
 			    add_recover_interceptor $rpath $handler
 			}
-			get - head - options - post - put - delete - patch - any {
+			get - head - options - post - put - delete - patch - any - * {
 			    tfast $type $rpath $handler
 			}
 			ns {
@@ -250,7 +331,11 @@ namespace eval ::tfast {
 		set host [dicts get $args -host localhost]
 		set port [dicts get $args -port 3000]
 		set workers [dicts get $args -workers 1]
-		serve $host $port $workers
+		set backend [dicts get $args -backend pure]
+		serve $host $port $workers $backend
+	    }
+	    help {
+		show_help
 	    }
 	    default {
 		lassign $args path handler
@@ -271,9 +356,9 @@ namespace eval ::tfast {
 	    return
 	}
 
-	# is going here, type is unknown so should be verb,verb etc..
+	# is going to here, type is unknown so should be a verb or verbs..
 	set methods [get_methods $type]
-	if {[llength $methods] < 2} {	    
+	if {[llength $methods] < 2} {     
 	    return -code error "unknown NS handler type: $type"
 	}
 	
@@ -289,7 +374,7 @@ namespace eval ::tfast {
 	} elseif {[string match *\|* $method]} {
 	    split $method |
 	} elseif {$method == "*" || $method == ""} {
-	  list any  
+	    list any  
 	} else {
 	    list $method
 	}
@@ -407,7 +492,6 @@ namespace eval ::tfast {
     }
 
     proc serve {host port workers {backend "pure"}} {
-	variable log
 	set serve "::tfast::http::backend::${backend}::serve"
 	$serve $host $port $workers
     }

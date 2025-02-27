@@ -62,7 +62,7 @@ namespace eval ::tfast::http {
 		dict set headers $name [lindex $args 0]
 		my prop headers $headers
 	    } else {
-		dicts get $headers $key {}
+		dicts get $headers $name {}
 	    }
 	}
 

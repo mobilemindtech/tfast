@@ -8,8 +8,7 @@ namespace eval ::tfast::http::backend::pure {
     variable log
     variable ServerSocket_fd
 
-    set log [logger::init tfast::http::backend::pure]
-
+    set log [logger::init tfast]
 
     proc serve {host port workers} {
 
@@ -43,8 +42,8 @@ namespace eval ::tfast::http::backend::pure {
 
     proc handle {socket addr port} {
 	yield
-	::tfast::http::handle $socket $addr $port
-	#puts [time {::tfast::http::handle $socket $addr $port}]
+	#::tfast::http::handle $socket $addr $port
+	puts [time {::tfast::http::handle $socket $addr $port}]
     }
 
     

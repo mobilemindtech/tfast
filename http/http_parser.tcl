@@ -1,5 +1,9 @@
 package require logger
 package require coroutine
+package require http_parser
+package require tools
+
+namespace import ::tools::dicts::*
 
 namespace eval ::tfast::http {
 
@@ -10,6 +14,24 @@ namespace eval ::tfast::http {
     namespace export parse_request
 
     proc parse_request {socket} {
+	set data [::http_parser::parse -channel $socket]
+	set headers [dict get $data headers]
+	
+	Request new \
+	    -method [dict get $data method] \
+	    -path  [dict get $data path] \
+	    -headers $headers \
+	    -body [dict get $data body] \
+	    -query [dict get $data queries] \
+	    -content-type [dicts get $headers Content-Type text/plain]
+
+    }
+    
+    proc parse_request0 {socket} {
+
+	return [parse_with_http_parse $socket]
+	
+	
 	# Default request data, they are overwritten if explicitly specified in 
 	# the HTTP request
 	set requestMethod {}

@@ -113,7 +113,7 @@ namespace eval ::tfast::http {
 	}
 	
 	method content-type {args} {
-	    my prop contgent-type {*}$args
+	    my prop content-type {*}$args
 	}
     }
 }

@@ -53,13 +53,52 @@ namespace eval ::tfast::http {
 	}
     }
 
-
     # add controller instance on cache
     proc add_controller {ctrl} {
 	variable Controllers
 	dict set Controllers [info object class $ctrl] $ctrl
     }
 
+    proc fix_response_content_type {response} {
+	set hctype [$response header Content-Type]
+	set ctype [$response content-type]
+
+	if {$hctype == ""} {
+	    $response header Content-Type $ctype
+	}
+    }
+    
+    proc handle_request {req} {
+
+	variable log
+	
+	set request [Request new \
+			 -path [dict get $req path] \
+			 -method [dict get $req method] \
+			 -body [dict get $req body] \
+			 -headers [dict get $req headers] \
+			 -queries [dict get $req queries]]
+
+	try {
+	    set response [filter_and_dispatch $request]
+
+	    fix_response_content_type $response
+	    
+	    dict create \
+		status [$response status] \
+		body [$response body] \
+		headers [$response headers]
+	    
+	} on error err {
+	    ${log}::error "$err: $::errorInfo"
+
+	    dict create \
+		status 500 \
+		body "$err: $::errorInfo" \
+		headers {Content-Type text/plain}
+	}
+    }
+    
     # handle http request
     proc handle {socket addr port} {
 	variable log
@@ -76,6 +115,8 @@ namespace eval ::tfast::http {
 	    set request [parse_request $socket]
 	    set response [filter_and_dispatch $request]
 
+	    fix_response_content_type $response
+	    
 	    if {[$response bool websocket]} {
 		${log}::debug "do websocket upgrade ${wsServer}"
 		set wsServer [app::get_ws_socket]
@@ -260,6 +301,8 @@ namespace eval ::tfast::http {
 
     proc filter_and_dispatch {request} {
 
+	variable log
+	
 	set error_state false
 	
 	try {
@@ -281,7 +324,7 @@ namespace eval ::tfast::http {
 	    
 	} on error err {
 	    set error_state true
-	    ${log}:error $err
+	    ${log}::error $err
 	    puts $::errorInfo
 
 	    set result [apply_route_recovers $request]
