@@ -1,0 +1,7 @@
+app:
+  name: tfast
+  description: Web Framework
+  testdir: ./tests
+dependencies:
+  - https://github.com/mobilemindtech/tcl-sjson.git
+  - https://github.com/mobilemindtech/tcl-tools.git

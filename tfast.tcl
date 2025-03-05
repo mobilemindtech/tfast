@@ -26,9 +26,7 @@ namespace import ::tfast::router::*
 
 namespace eval ::tfast {
 
-
     logger::utils::applyAppender -appender colorConsole
-
 
     namespace export tfast render
 
@@ -184,28 +182,28 @@ namespace eval ::tfast {
 	puts ""
 	puts "	*Middleware:"
 	puts ""
-	puts "	Enter middleware receives the request and can return a request or response. If return a response so return immediately"
+	puts "		Enter middleware receives the request and can return a request or response. If return a response so return immediately"
 	puts {  	tfast ns /path -enter {req {}}}
-	puts "	Leave middleware receives the request and the response and can return a response"
+	puts "		Leave middleware receives the request and the response and can return a response"
 	puts ""
-	puts {  tfast ns /path -leave {req resp {}}}
-	puts "We too define routes with middlewares"
-	puts {  tfast get / \
-		    {req {}} \ # first middleware
-	            {req {}} \ # second middleware
-		    {req {}} \ # route action
-		    {req resp {}} # last middleware
+	puts {  	tfast ns /path -leave {req resp {}}}
+	puts "		We too define routes with middlewares"
+	puts {  	tfast get / \
+		    	{req {}} \ # first middleware
+	        	    {req {}} \ # second middleware
+		    	{req {}} \ # route action
+		    	{req resp {}} # last middleware
 	}
 	puts ""
-	puts "Interceptor:"
+	puts "	* Interceptor:"
 	puts ""
-	puts "Interceptors can be defined by path or status code and path"
-	puts "It receive the request and the response and can return a response"
+	puts "		Interceptors can be defined by path or status code and path"
+	puts "		It receive the request and the response and can return a response"
 	puts ""
-	puts {  tfast ns /path -recover {req resp {}} # catch all on /path}
-	puts {  tfast ns 500 * {req resp {}} # cacth all status 500}
+	puts {  	tfast ns /path -recover {req resp {}} # catch all on /path}
+	puts {  	tfast ns 500 * {req resp {}} # cacth all status 500}
 	puts "cleanup: cleanup routes"
-	puts {  tfast cleanup}
+	puts {  	tfast cleanup}
 	puts "route <method> <path>: Search by route and return a Route object or empty string"
 	puts {  tfast route match get /path }
 	puts "print -routes -interceptors -middlewares -all: print router configs"

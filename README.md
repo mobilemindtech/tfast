@@ -27,7 +27,7 @@ tfast serve -port 3000 -host 0.0.0.0
 
 ## Advanced
 
-tfast <cmd> [options]
+`tfast <cmd> [options]`
 
 ### Commands
 
@@ -35,42 +35,35 @@ tfast <cmd> [options]
 
 * cleanup - Cleanup routes
 
-* print [options] - print router configs
-  * -routes - print only routes
-  * -interceptors - print only interceptors
-  * -middlewares - print only middlewares
-  * -all - print routes, interceptors and middlewares
+* print [options]: print router configs
+  * -routes: print only routes
+  * -interceptors: print only interceptors
+  * -middlewares: print only middlewares
+  * -all: print routes, interceptors and middlewares
 
 * route match <method> <path> - Search by route and return a Route object or empty string
-  `tfast route match get /path`
+
+`tfast route match get /path`
 
 * serve [options] 
-  * -host - Default is localhost
-  * -port - Default is 3000
-  * -workers - Threads number, default is 1
+  * -host: Default is localhost
+  * -port: Default is 3000
+  * -workers: Threads number, default is 1
   * -backend <backend-name>: Backend name, default is pure
-    * pure - Pure TCL http server
+    * pure: Pure TCL http server
     * easy_beast - Boost beast http server
 
 
 #### Http methods
 
-* get
-    `tfast get /path {req { render -text "hello"}}`
-* head
-    `tfast head * {req { render }}`
-* options
-    `tfast options * {req { render }}`
-* post
-    `tfast post /path {req { render -text [req body]}}`
-* put
-    `tfast put /path {req { render -text [req body]}}`
-* delete
-    `tfast delete /path {req { render }}`
-* patch
-    `tfast patch /path {req { render -text "hello"}}`
-* any or *
-    `tfast * /path {req { render -text "hello"}}`
+* get: `tfast get /path {req { render -text "hello"}}`
+* head: `tfast head * {req { render }}`
+* options: `tfast options * {req { render }}`
+* post: `tfast post /path {req { render -text [req body]}}`
+* put: `tfast put /path {req { render -text [req body]}}`
+* delete: `tfast delete /path {req { render }}`
+* patch: `tfast patch /path {req { render -text "hello"}}`
+* any or \*: `tfast * /path {req { render -text "hello"}}`
 
 #### Middlewares
 
