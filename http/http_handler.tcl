@@ -13,13 +13,19 @@ namespace eval ::tfast::http {
 	http_accept \
 	add_controller \
 	dispatch \
+	register_public_path \
+	register_public_extension \
+	register_filter_proc \
+	register_filter_instance \
+	print_debug
 	
 	
     
     variable Controllers
     variable FiltersObjs
     variable FiltersProcs
-    variable PublicPath
+    variable PublicPaths
+    variable PublicExtsEnableds
     variable log
 
     set log [logger::init tfast::http::http_server]
@@ -27,32 +33,33 @@ namespace eval ::tfast::http {
     set Controllers {}
     set FiltersObjs {}
     set FiltersProcs {}
-    set PublicPath {}
+    set PublicPaths {}
+    set PublicExtsEnableds {}
 
-    proc http_init {args} {
-	variable FiltersObjs
-	variable FiltersProcs
-	variable PublicPath
-
-	foreach {k v} {
-	    switch regexp -- {
-		-filters-objects {
-		    #[::trails::configs::get web filters objects]
-		    foreach obj $v {
-			lappend FiltersObjs [$obj new]
-		    }
-		}
-		-filters-procs {
-		    # {enter [] leave [] recover []}
-		    lappend FiltersProcs $v
-		}
-		-public-path {
-		    set PublicPath $v
-		}
-	    }
-	}
+    # register public path
+    proc register_public_path {path} {
+	variable PublicPaths
+        lappend PublicPaths $path
     }
 
+    # register filter by proc
+    proc register_filter_proc {filter} {
+	variable FiltersProcs
+	lappend FiltersProcs $filter
+    }
+
+    # register filter by object
+    proc register_filter_instance {filter} {
+	variable FiltersObjs
+	lappend FiltersObjs $filter
+    }
+
+    # configure extensions enabled on public path
+    proc register_public_extension {exts} {
+	variable PublicExtsEnableds
+	lappend PublicExtsEnableds $exts
+    }
+    
     # add controller instance on cache
     proc add_controller {ctrl} {
 	variable Controllers
@@ -371,7 +378,8 @@ namespace eval ::tfast::http {
 
 	variable log
 	variable Controllers
-	variable PublicPath
+	variable PublicPaths
+	variable PublicExtsEnableds
 	
 	set path [$request prop path]
 	set query [$request prop query]
@@ -383,11 +391,26 @@ namespace eval ::tfast::http {
 	${log}::debug "$method $path"
 
 	if {[string match "/public/*" $path]} {
-	    
-	    set path $PublicPath ; #[::trails::configs::get public]
-	    set map {} 
-	    lappend map "/public" $path
-	    return [Response new -file [string map $map $path]]
+
+	    foreach path $PublicPaths {
+		set map {} 
+		lappend map "/public" $path
+		set f [string map $map $path]
+		set ext [file extension $f]
+
+		if {[llength $PublicExtsEnableds] > 0} {
+		    if {![lsearch $PublicExtsEnableds $ext] > -1} {
+			${log}::debug "file extension $ext not enabled"
+			return [Response new -status 404 -content-type $contentType]
+		    }
+		}
+		
+		if {[file exists $f]} {
+		    return [Response new -file $f]
+		}
+	    }
+
+	    return [Response new -status 404 -content-type $contentType]
 
 	} else {
 
@@ -571,6 +594,18 @@ namespace eval ::tfast::http {
 	    }
 	}
 	return $resp    
+    }
+
+    proc print_debug {} {
+	variable PublicPaths
+	variable PublicExtsEnableds
+	variable FiltersObjs
+	variable FiltersProcs
+
+	puts "::> public -> $PublicPaths, exts: $PublicExtsEnableds"
+	puts "::> filters proc -> $FiltersProcs"
+	puts "::> filters objects -> $FiltersObjs"
+	puts "::>"
     }
 }
 

@@ -6,11 +6,11 @@ package require tools
 
 namespace import ::tools::dicts
 
-namespace eval ::tfast::http::backend::easy_beast {
+namespace eval ::tfast::http::backend::easybeast {
 
     variable log
 
-    set log [logger::init ::tfast::http::backend::easy_beast]
+    set log [logger::init ::tfast::http::backend::easybeast]
     
     proc handle {req} {
 	variable log
@@ -39,6 +39,6 @@ namespace eval ::tfast::http::backend::easy_beast {
     }
 
     proc serve {host port workers} {
-	::EasyBeast::serve $host $port [namespace current]::handle
+	::easybeast::serve $host $port [namespace current]::handle
     }
 }

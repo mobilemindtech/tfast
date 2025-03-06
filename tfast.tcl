@@ -28,7 +28,9 @@ namespace eval ::tfast {
 
     logger::utils::applyAppender -appender colorConsole
 
-    namespace export tfast render
+    namespace export \
+	tfast \
+	render
 
     variable log
 
@@ -164,74 +166,6 @@ namespace eval ::tfast {
     proc cmd_route {method args} {
 	add_route $method [lindex $args 0] {*}[lrange $args 1 end]
     }
-
-    proc show_help {} {
-   	puts ""
-	puts "Usage: tfast <cmd> \[options\]"
-	puts ""
-	puts "Command:"
-	puts "	* Http methods:"
-	puts {  	tfast get /path {req { render -text "hello"}}}
-	puts {  	tfast head * {req { render }}}
-	puts {  	tfast options * {req { render }}}
-	puts {  	tfast post /path {req { render -text [req body]}}}
-	puts {  	tfast put /path {req { render -text [req body]}}}
-	puts {  	tfast delete /path {req { render }}}
-	puts {  	tfast patch /path {req { render -text "hello"}}}
-	puts {  	tfast * /path {req { render -text "hello"}}}
-	puts ""
-	puts "	*Middleware:"
-	puts ""
-	puts "		Enter middleware receives the request and can return a request or response. If return a response so return immediately"
-	puts {  	tfast ns /path -enter {req {}}}
-	puts "		Leave middleware receives the request and the response and can return a response"
-	puts ""
-	puts {  	tfast ns /path -leave {req resp {}}}
-	puts "		We too define routes with middlewares"
-	puts {  	tfast get / \
-		    	{req {}} \ # first middleware
-	        	    {req {}} \ # second middleware
-		    	{req {}} \ # route action
-		    	{req resp {}} # last middleware
-	}
-	puts ""
-	puts "	* Interceptor:"
-	puts ""
-	puts "		Interceptors can be defined by path or status code and path"
-	puts "		It receive the request and the response and can return a response"
-	puts ""
-	puts {  	tfast ns /path -recover {req resp {}} # catch all on /path}
-	puts {  	tfast ns 500 * {req resp {}} # cacth all status 500}
-	puts "cleanup: cleanup routes"
-	puts {  	tfast cleanup}
-	puts "route <method> <path>: Search by route and return a Route object or empty string"
-	puts {  tfast route match get /path }
-	puts "print -routes -interceptors -middlewares -all: print router configs"
-	puts {  tfast print -all}
-	puts "ns: register namespace routes, interceptors and middlewares"
-	puts {
-	    tfast ns * \
-		-enter {req {}} \
-		-leave {req resp {}} \
-		-status 400 {req resp {}} \
-		-recover {req resp {}} 
-
-	    tfast ns /user {
-		enter {req {}}
-		401 {req {}}
-		get / {req {}}
-		get /:id {req {}}
-		post / {req {}}
-		put / {req {}}
-		delete /:id {req {}}
-		ns /nested {
-		    get / {req {}}
-		}
-	    }
-	}
-	puts "serve -host? -port? -workers? -backend <backend-name>: init server"
-	puts ""
-    }
     
     #
     # @param cmd match
@@ -268,6 +202,63 @@ namespace eval ::tfast {
 		    }
 		}
 	    }
+	    register {
+		foreach {it arg1 arg2} $args {
+		    switch $it {
+			routes {
+			    # from router
+			    build_config_routes $arg1
+			}
+			scaffold {
+			    set instance $arg1
+			    # from router
+			    build_scaffold_routes [$instance get_routes]
+			    # from http handler
+			    add_controller $instance
+
+			}
+			public {
+			    switch $arg1 {
+				extension {
+				    set exts [split $arg2 ,]
+				    set exts [lsearch -all -inline -not -exact $exts {}]
+				    if {[llength $exts] == 0} {
+					return -code error "invalid arg. enter with a valid extension"
+				    }
+				    foreach it $exts {
+					register_public_extension $it
+				    }
+				}
+				dir {
+				    if {![file exists $arg2]} {
+					return -code error "invalid arg. public dir does not exists"
+				    }
+				    register_public_path $arg2
+				}
+				default {
+				    return -code error "invalid option. use register public <extension|dir> <ext or dir>"
+				}
+			    }
+			}
+			filter {
+			    switch $arg1 {
+				proc {
+				    register_filter_proc $arg2
+				}
+				instance {
+				    register_filter_instance $arg2
+				}
+				default {
+				    return -code error "invalid option. use register filter <proc|instance> <proc os instance>"
+				}
+			    }
+			}
+			default {
+			    return -code error "invalid option. use register <public|filter|scaffold> \[options\]"
+			}
+		    }
+		}
+	    }
 	    print {
 		foreach it $args {
 		    switch -- $it {
@@ -284,6 +275,7 @@ namespace eval ::tfast {
 			    print_routes
 			    print_middlewares
 			    print_interceptors
+			    print_debug
 			}
 			default {
 			    return -code error "invalid option $v. use -routes | -interceptors | -middlewares"
@@ -331,10 +323,7 @@ namespace eval ::tfast {
 		set workers [dicts get $args -workers 1]
 		set backend [dicts get $args -backend pure]
 		serve $host $port $workers $backend
-	    }
-	    help {
-		show_help
-	    }
+	    }	   
 	    default {
 		lassign $args path handler
 		add_others_types $cmd $path $handler

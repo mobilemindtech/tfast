@@ -1,7 +1,7 @@
 
 source tfast.tcl
-source http/backend/http_pure.tcl
-#source http/backend/easy_beast.tcl
+source http/backend/pure.tcl
+#source http/backend/easybeast.tcl
 
 namespace import ::tfast::*
 
@@ -36,6 +36,11 @@ tfast get /lambda {req {
 
 tfast get /proc ::index
 
-tfast print -routes
-tfast help
-tfast serve -port 3000 -host 0.0.0.0 ; #-backend easy_beast
+tfast register public dir ./tests
+tfast register public extension .js,.jpg
+tfast register filter proc myfilter
+tfast register filter object myobject
+
+tfast print -all
+
+#tfast serve -port 3000 -host 0.0.0.0 ; #-backend easybeast
