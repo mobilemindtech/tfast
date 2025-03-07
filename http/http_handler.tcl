@@ -52,7 +52,7 @@ namespace eval ::tfast::http {
     proc register_filter_instance {filter} {
 	variable FiltersObjs
 	lappend FiltersObjs $filter
-    }
+}
 
     # configure extensions enabled on public path
     proc register_public_extension {exts} {
