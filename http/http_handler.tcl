@@ -386,21 +386,23 @@ namespace eval ::tfast::http {
 	set method [$request prop method]
 	set contentType [$request prop content-type]
 	set headers [$request prop headers]
-	set is_websocket false
+	set is_websocket false	
 
 	${log}::debug "$method $path"
 
 	if {[string match "/public/*" $path]} {
 
-	    foreach path $PublicPaths {
+	    foreach publicpath $PublicPaths {
+
 		set map {} 
-		lappend map "/public" $path
+		lappend map "/public" $publicpath
 		set f [string map $map $path]
 		set ext [file extension $f]
 
-		if {[llength $PublicExtsEnableds] > 0} {
-		    if {![lsearch $PublicExtsEnableds $ext] > -1} {
-			${log}::debug "file extension $ext not enabled"
+		set allowall [expr {[lsearch $PublicExtsEnableds *] > -1}]
+
+		if {!$allowall && [llength $PublicExtsEnableds] > 0} {
+		    if {[lsearch $PublicExtsEnableds $ext] == -1} {
 			return [Response new -status 404 -content-type $contentType]
 		    }
 		}

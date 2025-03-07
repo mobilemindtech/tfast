@@ -1,4 +1,3 @@
-
 namespace eval ::tfast::http {
 
     namespace export get_mime get_mimes
@@ -6,8 +5,8 @@ namespace eval ::tfast::http {
     proc get_mime {key defval} {
 	set items [get_mimes]
 
-	if {[dict exists $items $]} {
-	    dict get $items $
+	if {[dict exists $items $key]} {
+	    return [dict get $items $key]
 	}
 
 	return $defval
