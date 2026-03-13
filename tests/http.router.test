@@ -1,4 +1,5 @@
 #!/usr/bin/env tclsh
+
 package require tcltest
 package require tools
 
@@ -10,85 +11,83 @@ namespace import ::tfast::*
 namespace import ::tfast::http::*
 
 proc print-all {} {
-    tfast print -routes
-    tfast print -interceptors
-    tfast print -middlewares
+  tfast print -routes
+  tfast print -interceptors
+  tfast print -middlewaresls
 }
 
-
 proc log {args} {
-    puts "::> $args"
+  puts "::> $args"
 }
 
 proc setup {} {
-    tfast cleanup
+  tfast cleanup
 }
 
-test test-simple-request {} -setup {setup} -body {            
+tcltest::test test-simple-request {} -setup {setup} -body {
 
-    tfast get / {req {
-	if {[$req body] == "ping"} {
-	    render body pong	   
-	} else {
-	    render status 500
-	}
-    }}
+  tfast get / {req {
+      if {[$req body] == "ping"} {
+        render body pong
+      } else {
+        render status 500
+      }
+  }}
 
-    print-all
-    
-    set request [Request new \
-		     path / \
-		     method GET \
-		     body ping]
-    
-    set resp [dispatch $request]
+  print-all
 
-    assert-eq 200 [$resp status]
-    assert-eq pong [$resp body]
+  set request [Request new \
+             path / \
+             method GET \
+             body ping]
 
-    return true
+  set resp [dispatch $request]
+
+  assert-eq 200 [$resp status]
+  assert-eq pong [$resp body]
+
+  return true
 } -result true
 
-test test-request-with-miidleware {} -setup {setup} -body {            
+tcltest::test test-request-with-miidleware {} -setup {setup} -body {
 
-    set enter {req {
-	set body [$req body]
-	$req body "$body enter"
-	return $req
-    }}
-    
-    set handler {{req} {
-	if {[$req body] == "ping enter"} {
-	    render body pong	   
-	} else {
-	    render status 500
-	}
-    }}
+  set enter {req {
+      set body [$req body]
+      $req body "$body enter"
+      return $req
+  }}
 
-    set leave {req resp {
-	$resp updatemap body {it {list $it leave}}
-    }}
-    
-    set leave2 {{req resp} {
-	return $resp
-    }}
+  set handler {{req} {
+      if {[$req body] == "ping enter"} {
+        render body pong
+      } else {
+        render status 500
+      }
+  }}
 
-    tfast get / $enter $handler $leave $leave2
+  set leave {req resp {
+      $resp updatemap body {it {list $it leave}}
+  }}
 
-    print-all
-    
-    set request [Request new \
-		     path / \
-		     method GET \
-		     body ping]
-    
-    set resp [dispatch $request]
+  set leave2 {{req resp} {
+      return $resp
+  }}
 
-    assert-eq 200 [$resp status]
-    assert-eq {pong leave} [$resp body]
+  tfast get / $enter $handler $leave $leave2
 
-    return true
+  print-all
+
+  set request [Request new \
+             path / \
+             method GET \
+            body ping]
+
+  set resp [dispatch $request]
+
+  assert-eq 200 [$resp status]
+  assert-eq {pong leave} [$resp body]
+
+  return true
 } -result true
 
-
-cleanupTests	
+tcltest::cleanupTests

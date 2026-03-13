@@ -1,25 +1,24 @@
-
 source tfast.tcl
 source http/backend/http_pure.tcl
 #source http/backend/easy_beast.tcl
 
 namespace import ::tfast::*
 
-proc index {req} {
-    render -text {hello, tfast!!}
+proc index {_req} {
+  render -text {hello, tfast!!}
 }
 
 proc cors {req resp} {
-    set origin [$req header Origin]
+  set origin [$req header Origin]
 
-    if {$origin != ""} {
-	$resp header Access-Control-Allow-Origin $origin
-	$resp header Access-Control-Allow-Methods *
-	$resp header Access-Control-Allow-Headers *
-	$resp header Access-Control-Max-Age [expr {60*60*24*365}]
-    }
+  if {$origin != ""} {
+    $resp header Access-Control-Allow-Origin $origin
+    $resp header Access-Control-Allow-Methods *
+    $resp header Access-Control-Allow-Headers *
+    $resp header Access-Control-Max-Age [expr {60*60*24*365}]
+  }
 
-    return $resp
+  return $resp
 }
 
 #tfast ns / -leave ::cors
