@@ -34,6 +34,7 @@ namespace eval ::tfast::router {
     variable NsMiddlewareLeaveList
     variable NsRecoverInterceptorList
     variable NsStatusCodeInterceptorList
+    variable PublicPaths
     
     set log [logger::init tfast::router]
     set routes {}
@@ -331,7 +332,7 @@ namespace eval ::tfast::router {
 
 	foreach route $items {
 	    set path [dict get $route path]
-	    set results [prepare_route $route "" true]
+	    set results [prepare_route $route]
 	    foreach r $results {			
 		lappend all_routes $r
 	    }
@@ -360,7 +361,7 @@ namespace eval ::tfast::router {
 
 	    if {!$skip} {
 		#puts "::> prepare route $scaffold_path"
-		set results [prepare_route $scaffold_route "" true]
+		set results [prepare_route $scaffold_route]
 		#puts "::> routes for $scaffold_path: [llength $results]"
 		foreach r $results {			
 		    lappend all_routes $r

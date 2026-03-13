@@ -29,8 +29,9 @@ namespace eval ::tfast::http {
     }
 
     proc send_file {chan path {download false}} {
+	variable log
 	set assetFile $path
-	#puts "assetFile = $assetFile, exists = [file exists $assetFile]"
+	#puts "assetFile = $assetFile, exists = [file exists $assetFile], chan = $chan"
 
 	if {[file exists $assetFile] == 0 } {
 	    response_write $chan 404    
@@ -41,9 +42,8 @@ namespace eval ::tfast::http {
 		if {$download} {
 		    set contentType "application/octet-stream"
 		} else {
-		    set splited [split $path .]
-		    set ext [lindex $splited end]
-		    set contentType [get_mime .$ext application/octet-stream]       
+		    set ext [file extension $path]
+		    set contentType [get_mime $ext application/octet-stream]       
 		}
 
 		set fsize [file size $assetFile]
@@ -53,12 +53,17 @@ namespace eval ::tfast::http {
 
 		close $assetFile 
 		
-		set headers [dict create content-length $fsize] 
+		set headers [dict create content-length $fsize]
 
 		chan configure $chan -translation binary
-		response_write $chan -body $assetContent -status 200 -content-type $contentType -headers $headers
+		response_write $chan \
+		    -body $assetContent \
+		    -status 200 \
+		    -content-type $contentType \
+		    -headers $headers
 
 	    } err]} {
+		${log}::error $err
 		response_write $chan -body {server error} -status 500
 	    }
 	}  
@@ -96,7 +101,7 @@ namespace eval ::tfast::http {
     proc send_response {chan response} {
 
 	if {[$response present file]} {
-	    send_file chan [$response prop file]
+	    send_file $chan [$response prop file]
 	    return
 	}
 

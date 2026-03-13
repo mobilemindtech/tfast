@@ -23,67 +23,74 @@ namespace eval ::tfast::http {
 		tpl-path \
 		tpl-text \
 		tpl-json \
-		ctx
+		tpl-json-list \
+		ctx \
+		controller \
+		action
 
 	    my prop status 200
 	    my prop content-type text/plain
 	    
 	    foreach {k v} $args {
 		switch -- $k {
-		    -status -
-		    status  {
+		    -status
+		    - status  {
 			my prop status $v
 		    }
-		    -body -
-		    body {
+		    -body
+		    - body {
 			my prop body $v
 		    }
-		    -content-type -
-		    content-type {
+		    -content-type
+		    - content-type {
 			my prop content-type $v
 		    }				
-		    -headers -
-		    headers {
+		    -headers
+		    - headers {
 			my prop headers $v
 		    }
-		    -json -
-		    json {
+		    -json
+		    - json {
 			my props body $v content-type {application/json} 
 		    }				
-		    -text -
-		    text {
+		    -text
+		    - text {
 			my props body $v content-type {text/plain} 
 		    }				
-		    -html -
-		    html {
+		    -html
+		    - html {
 			my props body $v content-type {text/html} 
 		    }	
-		    -file -
-		    file {
+		    -file
+		    - file {
 			my prop file $v
 		    }
-		    -ctx -
-		    ctx {
+		    -ctx
+		    - ctx
+		    - -model
+		    - model {
 			my prop ctx $v
 		    }
-		    -tpl-name -
-		    tpl-name {
+		    -tpl-name
+		    - tpl-name
+		    - -view
+		    - view {
 			my props tpl-name $v content-type {text/html}
 		    }
-		    -tpl-path -
-		    tpl-path {
+		    -tpl-path
+		    - tpl-path {
 			my props tpl-path $v content-type {text/html}
 		    }
-		    -tpl-text -
-		    tpl-text {
+		    -tpl-text
+		    - tpl-text {
 			my props tpl-text $v content-type {text/html}
 		    }		
-		    -tpl-json -
-		    tpl-json {
+		    -tpl-json
+		    - tpl-json {
 			my props tpl-json $v content-type {application/json}
 		    }								
-		    -websocket -
-		    websocket {
+		    -websocket
+		    - websocket {
 			my prop websocket $v
 		    }			
 		}

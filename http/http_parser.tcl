@@ -1,6 +1,6 @@
 package require logger
 package require coroutine
-package require http_parser
+package require httpparser
 package require tools
 
 namespace import ::tools::dicts::*
@@ -9,12 +9,12 @@ namespace eval ::tfast::http {
 
   variable log
 
-  set log [logger::init tfast::http::http_parser]
+  set log [logger::init tfast::http::httpparser]
 
   namespace export parse_request
 
   proc parse_request {socket} {
-    set data [::http_parser::parse -channel $socket]
+    set data [::httpparser::parse -channel $socket]
     set headers [dict get $data headers]
 
     Request new \

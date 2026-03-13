@@ -27,7 +27,9 @@ namespace eval ::tfast {
 
   logger::utils::applyAppender -appender colorConsole
 
-  namespace export tfast render
+    namespace export \
+	tfast \
+	render
 
   variable log
 
@@ -265,6 +267,63 @@ namespace eval ::tfast {
           }
         }
       }
+      register {
+      		foreach {it arg1 arg2} $args {
+      		    switch $it {
+      			routes {
+      			    # from router
+      			    build_config_routes $arg1
+      			}
+      			scaffold {
+      			    set instance $arg1
+      			    # from router
+      			    build_scaffold_routes [$instance get_routes]
+      			    # from http handler
+      			    add_controller $instance
+
+      			}
+      			public {
+      			    switch $arg1 {
+      				extension {
+      				    set exts [split $arg2 ,]
+      				    set exts [lsearch -all -inline -not -exact $exts {}]
+      				    if {[llength $exts] == 0} {
+      					return -code error "invalid arg. enter with a valid extension"
+      				    }
+      				    foreach it $exts {
+      					register_public_extension $it
+      				    }
+      				}
+      				dir {
+      				    if {![file exists $arg2]} {
+      					return -code error "invalid arg. public dir does not exists"
+      				    }
+      				    register_public_path $arg2
+      				}
+      				default {
+      				    return -code error "invalid option. use register public <extension|dir> <ext or dir>"
+      				}
+      			    }
+      			}
+      			filter {
+      			    switch $arg1 {
+      				proc {
+      				    register_filter_proc $arg2
+      				}
+      				instance {
+      				    register_filter_instance $arg2
+      				}
+      				default {
+      				    return -code error "invalid option. use register filter <proc|instance> <proc os instance>"
+      				}
+      			    }
+      			}
+      			default {
+      			    return -code error "invalid option. use register <public|filter|scaffold> \[options\]"
+      			}
+      		    }
+      		}
+      }
       print {
         foreach it $args {
           switch -- $it {
@@ -281,6 +340,7 @@ namespace eval ::tfast {
               print_routes
               print_middlewares
               print_interceptors
+              print_debug
             }
             default {
               return -code error "invalid option $it. use -routes | -interceptors | -middlewares"
@@ -384,17 +444,17 @@ namespace eval ::tfast {
     set status_list [get_option_list_with_x_args $args -status 2]
     set methods [get_methods [get_option $args -method]]
 
-    foreach it $enter_list {
-      set code_info [get_code_info $it]
-      set code_type [dict get $code_info code_type]
-      set handler [dict get $code_info handler]
-      if {[dict get $code_info nargs] != 1} {
-        return -code error "invalid anter middleware: $handler"
-      }
-      foreach mtd $methods {
-        add_middleware $path enter $mtd [list $code_type $handler]
-      }
-    }
+	foreach it $enter_list {
+	    set code_info [get_code_info $it]
+	    set code_type [dict get $code_info code_type]
+	    set handler [dict get $code_info handler]
+	    if {[dict get $code_info nargs] != 1} {
+		return -code error "invalid anter middleware: $handler"
+	    }
+	    foreach mtd $methods {
+		add_middleware $path enter $mtd [list $code_type $handler]
+	    }
+	}
 
     foreach it $leave_list {
       set code_info [get_code_info $it]
