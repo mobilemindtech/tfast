@@ -5,7 +5,7 @@ package require uuid
 package require coroutine
 package require tools
 
-source ../tfast.tcl
+source ./tfast.tcl
 
 namespace import ::tcltest::*
 namespace import ::tfast::*

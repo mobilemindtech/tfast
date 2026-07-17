@@ -3,7 +3,7 @@
 package require tcltest
 package require tools
 
-source ../tfast.tcl
+source ./tfast.tcl
 
 namespace import ::tcltest::*
 namespace import ::tools::assert::*
@@ -13,7 +13,7 @@ namespace import ::tfast::http::*
 proc print-all {} {
   tfast print -routes
   tfast print -interceptors
-  tfast print -middlewaresls
+  tfast print -middlewares
 }
 
 proc log {args} {
@@ -49,7 +49,7 @@ tcltest::test test-simple-request {} -setup {setup} -body {
   return true
 } -result true
 
-tcltest::test test-request-with-miidleware {} -setup {setup} -body {
+tcltest::test test-request-with-middleware {} -setup {setup} -body {
 
   set enter {req {
       set body [$req body]

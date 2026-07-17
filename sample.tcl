@@ -1,33 +1,23 @@
-
 source tfast.tcl
-source http/backend/http_pure.tcl
-#source http/backend/easy_beast.tcl
+#source http/backend/pure.tcl
+source http/backend/easybeast.tcl
 
 namespace import ::tfast::*
 
 proc index {req} {
-    render -text {hello, tfast!!}
+  render -text {hello, tfast!!}
 }
 
-proc cors {req resp} {
-    set origin [$req header Origin]
+set cors [::tfast::http::middleware::cors origin * methods * headers * max-age 3600]
 
-    if {$origin != ""} {
-	$resp header Access-Control-Allow-Origin $origin
-	$resp header Access-Control-Allow-Methods *
-	$resp header Access-Control-Allow-Headers *
-	$resp header Access-Control-Max-Age [expr {60*60*24*365}]
-    }
+tfast ns * \
+  -method options,head \
+  -enter $cors
 
-    return $resp
-}
-
-#tfast ns / -leave ::cors
-
-tfast options,head * {req {
-    puts "::> options"
-    render
-}}
+#tfast options,head * {req {
+#    puts "::> options"
+#    render
+#}}
 
 # simple route
 tfast get /lambda {req {
@@ -37,5 +27,5 @@ tfast get /lambda {req {
 tfast get /proc ::index
 
 tfast print -routes
-tfast help
-tfast serve -port 3000 -host 0.0.0.0 ; #-backend easy_beast
+# tfast help
+tfast serve -port 3000 -host 0.0.0.0 -backend easybeast

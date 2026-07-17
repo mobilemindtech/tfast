@@ -18,14 +18,14 @@ namespace eval ::tfast::http::backend::pure {
       worker_init $workers
       set socket [socket -server worker_accept $port]
     } else {
-      set socket [socket -server http_accept $port]
+      set socket [socket -server [namespace current]::http_accept $port]
     }
 
     ${log}::info "http server started on http://localhost:$port"
 
     set ServerSocket_fd $socket
 
-	#websocket_init $socket
+  #websocket_init $socket
 
     vwait forever
   }
@@ -35,12 +35,12 @@ namespace eval ::tfast::http::backend::pure {
     coroutine [namespace current]::$uuid [namespace current]::handle $socket $addr $port
     chan configure $socket -blocking 0 -buffering line
     chan event $socket readable [namespace current]::$uuid
-	#chan event $socket readable [list ::tfast::http::handle $socket $addr $port]
+  #chan event $socket readable [list ::tfast::http::handle $socket $addr $port]
   }
 
   proc handle {socket addr port} {
     yield
-	#::tfast::http::handle $socket $addr $port
+  #::tfast::http::handle $socket $addr $port
     puts [time {::tfast::http::handle $socket $addr $port}]
   }
 

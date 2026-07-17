@@ -3,19 +3,19 @@ package require tcltest
 namespace import ::tcltest::*
 
 if {$argc != 0} {
-    if {[lindex $::argv 0] eq "configure"} {
-        foreach {action arg1 arg2} $::argv {
-            $action $arg1 arg2
-        }
-    } else {
-        foreach {action arg} $::argv {
-            if {[string match -* $action]} {
-                configure $action $arg
-            } else {
-                $action $arg
-            }
-        }
+  if {[lindex $::argv 0] eq "configure"} {
+    foreach {action arg1 arg2} $::argv {
+      $action $arg1 arg2
     }
+  } else {
+    foreach {action arg} $::argv {
+      if {[string match -* $action]} {
+        configure $action $arg
+      } else {
+        $action $arg
+      }
+    }
+  }
 }
 
 runAllTests
